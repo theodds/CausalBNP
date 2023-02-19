@@ -1,0 +1,3 @@
+useDynLib(GPBart)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
