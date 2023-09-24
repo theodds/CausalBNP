@@ -16,19 +16,16 @@ $$
 
 $$
   \mbox{logit}\Pr(R_{i(j+1)} = 1 \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i) = 
-$$
-
-
-$$
   \zeta_{j}^{(Z_i)}
      + \gamma_{j1}^{(Z_i)}   Y_{ij} + 
         + \gamma_{j2}^{(Z_i)} Y_{i(j-1)},
+
 $$
 
 $$
   [Y_{ij} \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i] \sim 
-    N\left\{\mu^{(Z_i)}_j + 
-        \sum_{\ell = 1}^{j-1} \phi^{(Z_i)}_{j\ell}(Y_{i\ell} - \mu_\ell^{(Z_i)}),
+    N\left\{\mu_j^{(Z_i)} + 
+        \sum_{\ell = 1}^{j-1} \phi_{j\ell}^{(Z_i)}(Y_{i\ell} - \mu_\ell^{(Z_i)}),
         \sigma^2\right\}
 $$
 
