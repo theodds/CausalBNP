@@ -3,7 +3,7 @@ longitudinal outcome data subject to informative missingness. The observed data
 model considered here is of the form
 
 $$
-\begin{aligned}
+\begin{array}{rl}
   Z_i &\sim \text{Categorical}(\omega), \\
   R_{i1} &\equiv 1, \\
   [Y_{i1} \mid Z_i] &\sim N(\mu^{(Z_i)}_1, \sigma^{2(Z_i)}_1), \\
@@ -14,7 +14,7 @@ $$
     N\left\{\mu^{(Z_i)}_j + 
         \sum_{\ell = 1}^{j-1} \phi^{(Z_i)}_{j\ell}(Y_{i\ell} - \mu_\ell^{(Z_i)}),
         \sigma^2\right\}
-\end{aligned}
+\end{array}
 $$
 
 While this model does not account for any predictors, we note that it is
