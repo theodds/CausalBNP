@@ -15,7 +15,7 @@ $$
 $$
 
 $$
-  \mbox{logit}\Pr(R_{i(j+1)} = 1 \mid R_{ij} = 1, 
+  \mbox{logit}\Pr(R_{i(j+1)} = 1 \mid R_{ij} = 1, \overline{Y}
 $$
 
 
