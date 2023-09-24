@@ -20,7 +20,7 @@ $$
 
 
 $$
-  \zeta^{(Z_i)}_{j} 
+  \zeta_{j}^{(Z_i)}
      + \gamma^{(Z_i)}_{j1}   Y_{ij} + 
         + \gamma_{j2}^{(Z_i)} Y_{i(j-1)},
 $$
