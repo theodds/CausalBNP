@@ -15,12 +15,12 @@ $$
 $$
 
 $$
-  \mbox{logit}\Pr(R_{i(j+1)} = 1 \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i) = \zeta^{(Z_i)}_j
+  \mbox{logit}\Pr(R_{i(j+1)} = 1 \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i) = \zeta^{(Z_i)}_j + \gamma^{(Z_i)}_{j1} \,  Y_{ij} +
 $$
 
 
 $$
-     + \gamma^{(Z_i)}_{j1} \,  Y_{ij} + \,
+      \,
         + \gamma_{j2}^{(Z_i)} Y_{i(j-1)},
 $$
 
