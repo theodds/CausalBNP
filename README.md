@@ -36,6 +36,14 @@ It is structured as follows:
     devtools::install_github("lit777/BNPMediation")
     ```
 
+# System Requirements
+
+The package __CausalBNPBook__ needs to be installed from source, and therefore
+one needs to have installed the required compilers. For Windows, this means
+installing [Rtools](https://cran.r-project.org/bin/windows/Rtools/), and for
+MacOSX this means installing XCode and a Fortran compiler [as described
+here](https://cran.r-project.org/bin/macosx/tools/).
+
 # Status of the Page
 
 The software given here uses a wide variety of packages for model fitting, as it

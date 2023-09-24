@@ -1,7 +1,7 @@
-## Load Dataset ----
+## Load Packages ----
 
-library(tikzDevice)
 library(tidyverse)
+library(CausalBNPBook)
 library(splines)
 library(BART)
 library(xgboost)
@@ -10,8 +10,12 @@ library(gbm)
 
 set.seed(843592734)
 
-meps <- read.csv(file = "data/meps.csv") %>% 
-  as_tibble %>% 
+## Preprocess meps ----
+
+data(meps)
+
+meps <- meps %>%
+  as_tibble %>%
   mutate(y = log(y)) %>%
   select(y, age)
 
@@ -29,19 +33,15 @@ pred_boost <- predict(fitted_boost, test_df, n.trees = 200)
 
 ## Plot results ----
 
-results_df <- tibble(age = rep(test_df$age,2), 
-                     fage = c(pred_rf, pred_boost), 
-                     method = rep(c("Random Forests", "Boosting"), 
+results_df <- tibble(age = rep(test_df$age,2),
+                     fage = c(pred_rf, pred_boost),
+                     method = rep(c("Random Forests", "Boosting"),
                                   each = nrow(test_df)))
 
-tikz("BagBoost.tex", width = 5.5, height = 3*.8, standAlone =  TRUE)
-
-ggplot(results_df, aes(x = age, y = fage)) + 
-  geom_line() + 
-  facet_wrap(~method) + 
+ggplot(results_df, aes(x = age, y = fage)) +
+  geom_line() +
+  facet_wrap(~method) +
   xlab("Age") +
   ylab("Prediction") +
   theme_bw()
 
-dev.off()
-tools::texi2pdf("BagBoost.tex", clean = TRUE)

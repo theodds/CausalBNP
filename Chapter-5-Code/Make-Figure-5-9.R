@@ -1,13 +1,19 @@
 ## Load Dataset ----
 
-library(tikzDevice)
+library(CausalBNPBook)
 library(tidyverse)
 library(splines)
 library(BART)
 
-set.seed(843592734)
+## Preprocess meps ----
 
-meps <- read.csv(file = "data/meps.csv") %>% as_tibble %>% mutate(y = log(y))
+data(meps)
+
+meps <- meps %>%
+  as_tibble %>%
+  mutate(y = log(y), sex = factor(sex), race = factor(race),
+         marriage = factor(marriage), seat_belt = factor(seat_belt),
+         edu = factor(edu))
 
 ## Create testing set ----
 
@@ -17,14 +23,14 @@ meps_test_01 <- rbind(meps_test_0, meps_test_1)
 
 ## Fit BART using smoking as a covariate ----
 
-bart_with_covariates <- wbart(x.train = meps %>% select(-y) %>% as.data.frame(), 
-                              y.train = meps$y, 
+bart_with_covariates <- wbart(x.train = meps %>% select(-y) %>% as.data.frame(),
+                              y.train = meps$y,
                               x.test = meps_test_01 %>% as.data.frame())
 
 
-## Get BB vector ----
+## Get Bayesian Bootstrap Weights ----
 
-bb_weight <- MCMCpack::rdirichlet(n = nrow(bart_with_covariates$yhat.test), 
+bb_weight <- MCMCpack::rdirichlet(n = nrow(bart_with_covariates$yhat.test),
                                   alpha = rep(1,nrow(meps)))
 
 mean_0 <- rowSums(bb_weight * bart_with_covariates$yhat.test[,1:nrow(meps)])
@@ -34,11 +40,11 @@ mean_1 <- rowSums(bb_weight * bart_with_covariates$yhat.test[,-(1:nrow(meps))])
 
 meps_train_0 <- meps %>% filter(smoke == 0) %>% select(-y) %>% as.data.frame()
 meps_train_1 <- meps %>% filter(smoke == 1) %>% select(-y) %>% as.data.frame()
-bart_fit_0 <- wbart(meps_train_0, 
-                    meps$y[meps$smoke == 0], 
+bart_fit_0 <- wbart(meps_train_0,
+                    meps$y[meps$smoke == 0],
                     x.test = as.data.frame(meps_test_0))
-bart_fit_1 <- wbart(meps_train_1, 
-                    meps$y[meps$smoke == 1], 
+bart_fit_1 <- wbart(meps_train_1,
+                    meps$y[meps$smoke == 1],
                     x.test = as.data.frame(meps_test_1))
 
 ## Get estimates ----
@@ -56,23 +62,15 @@ df_to_plot <- tibble(
   method = rep(c("Covariate", "Stratified"), each = length(effect_est))
 )
 
-tikz("BartStratCompare.tex", standAlone = TRUE, width = 6, height = 4)
-
-ggplot(df_to_plot, aes(x = effect)) + 
+ggplot(df_to_plot, aes(x = effect)) +
   geom_histogram(color = 'white') +
   facet_wrap(~method) +
-  xlab("$\\Delta$") + 
+  xlab("$\\Delta$") +
   ylab("Frequency") +
-  theme_bw() 
+  theme_bw()
 
 print(mean(effect_est > 0))
 print(mean(effect_est_strat > 0))
-
-dev.off()
-
-tools::texi2pdf("BartStratCompare.tex", clean = TRUE)
-
-
 
 
 
