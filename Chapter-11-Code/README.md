@@ -1,16 +1,5 @@
----
-title: "DPMs for Dropout in Longitudinal Studies"
-author: "Antonio R. Linero"
-date: "2023-09-13"
-output: html_document
-editor_options: 
-  markdown: 
-    wrap: 80
-  chunk_output_type: console
----
-
 $$
-  \newcommand{\logit}{\operatorname{logit}}
+  \newcommand{\logit}{\mbox{logit}}
 $$
 
 We illustrate the usage of Dirichlet process mixture models to model
