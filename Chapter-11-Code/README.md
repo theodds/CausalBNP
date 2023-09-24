@@ -20,10 +20,10 @@ $$
 
 $$
   [Y_{ij} \mid R_{ij} = 1, 
-  \overline{Y}_{i(j-1)}, Z_i] 
+  \overline{Y}\_{i(j-1)}, Z_i] 
   \sim 
     N\left\{\mu_j^{(Z_i)} + 
-        \sum_{\ell = 1}^{j-1} \phi_{j\ell}^{(Z_i)}(Y_{i\ell} - \mu_\ell^{(Z_i)}),
+        \sum\_{\ell = 1}^{j-1} \phi_{j\ell}^{(Z_i)}(Y_{i\ell} - \mu_\ell^{(Z_i)}),
         \sigma^2\right\}
 $$
 
