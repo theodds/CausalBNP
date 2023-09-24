@@ -9,6 +9,7 @@ library(tidyverse)
 library(splines)
 library(BART)
 library(rpart)
+library(rpart.plot)
 library(xgboost)
 library(randomForest)
 library(gbm)
@@ -94,13 +95,6 @@ fitted_boost <- gbm(y ~ age, data = meps, distribution = "gaussian")
 pred_boost <- predict(fitted_boost, test_df, n.trees = 200)
 ```
 
-```
-## Warning in predict.gbm(fitted_boost,
-## test_df, n.trees = 200): Number of
-## trees not specified or exceeded
-## number fit so far. Using 100.
-```
-
 We then use __tidyverse__ to plot the results:
 
 
@@ -119,3 +113,133 @@ ggplot(results_df, aes(x = age, y = fage)) +
 ```
 
 ![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-1.png)
+
+# Reproducing Figure 5.9
+
+Finally, we show how to reproduce Figure 5.9, which contains the posterior
+distribution of the average causal effect (ACE) of medical expenditures on
+smoking. We first preprocess the data a little:
+
+
+```r
+meps_causal <- meps %>%
+  as_tibble %>%
+  mutate(sex = factor(sex), race = factor(race),
+         marriage = factor(marriage), seat_belt = factor(seat_belt),
+         edu = factor(edu))
+
+meps_test_0 <- meps_causal %>% mutate(smoke = 0) %>% select(-y)
+meps_test_1 <- meps_causal %>% mutate(smoke = 1) %>% select(-y)
+meps_test_01 <- rbind(meps_test_0, meps_test_1)
+```
+
+Next, we fit the BART model treating smoking as a covariate using the __BART__
+package:
+
+
+```r
+set.seed(398043)
+bart_with_covariates <- wbart(x.train = meps_causal %>%
+                                select(-y) %>% as.data.frame(),
+                              y.train = meps$y,
+                              x.test = meps_test_01 %>% as.data.frame())
+```
+
+Compare this with fitting the BART model by _stratifying_ on smoking:
+
+
+```r
+set.seed(398043)
+meps_train_0 <- meps_causal %>% filter(smoke == 0) %>%
+  select(-y, -smoke) %>% as.data.frame()
+meps_train_1 <- meps_causal %>% filter(smoke == 1) %>%
+  select(-y, -smoke) %>% as.data.frame()
+bart_fit_0 <- wbart(x.train = meps_train_0,
+                    y.train = meps_causal$y[meps$smoke == 0],
+                    x.test = as.data.frame(meps_test_0)
+)
+bart_fit_1 <- wbart(x.train = meps_train_1,
+                    y.train = meps_causal$y[meps$smoke == 1],
+                    x.test = as.data.frame(meps_test_1))
+```
+
+Note that in both cases, we get predictions for all individuals whether they
+smoked (`smoke == 1`) or not (`smoke == 0`). Next, we sample the weights of the
+Bayesian bootstrap, and use the weights to compute the average of the potential
+outcomes for both treatments and methods:
+
+
+```r
+set.seed(3809384)
+
+bb_weight <- MCMCpack::rdirichlet(n = nrow(bart_with_covariates$yhat.test),
+                                  alpha = rep(1,nrow(meps)))
+
+mean_0 <- rowSums(bb_weight * bart_with_covariates$yhat.test[,1:nrow(meps)])
+mean_1 <- rowSums(bb_weight * bart_with_covariates$yhat.test[,-(1:nrow(meps))])
+
+mean_0_strat <- rowSums(bb_weight * bart_fit_0$yhat.test)
+mean_1_strat <- rowSums(bb_weight * bart_fit_1$yhat.test)
+```
+
+Lastly, we compute the ACE for both methods and compute the causal effects!
+
+
+```r
+effect_est <- mean_1 - mean_0
+effect_est_strat <- mean_1_strat - mean_0_strat
+
+df_to_plot <- tibble(
+  effect = c(effect_est, effect_est_strat),
+  method = rep(c("Covariate", "Stratified"), each = length(effect_est))
+)
+
+ggplot(df_to_plot, aes(x = effect)) +
+  geom_histogram(color = 'white') +
+  facet_wrap(~method) +
+  xlab("$\\Delta$") +
+  ylab("Frequency") +
+  theme_bw()
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with
+## `binwidth`.
+```
+
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png)
+
+```r
+print(mean(effect_est > 0))
+```
+
+```
+## [1] 0.523
+```
+
+```r
+print(mean(effect_est_strat > 0))
+```
+
+```
+## [1] 0.621
+```
+
+# Individual Level Effects
+
+We can use `rpart.plot` from the __rpart.plot__ package to visualize the
+heterogeneity in the estimated individual level treatment effects. The following
+code summarizes the heterogeneity in the BART model fit using a decision tree.
+This is known as a "posterior summarization" or "fit-the-fit" approach to model
+interpretation.
+
+
+```r
+pred_diff <- bart_fit_1$yhat.test.mean - bart_fit_0$yhat.test.mean
+meps_test_ns <- meps_test_0 %>% select(-smoke) %>% mutate(delta = pred_diff)
+rpart_diff <- rpart(delta ~ ., data = meps_test_ns)
+
+rpart.plot(rpart_diff)
+```
+
+![plot of chunk fit-the-fit](figure/fit-the-fit-1.png)
