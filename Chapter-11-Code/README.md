@@ -15,10 +15,7 @@ $$
 $$
 
 $$
-  \mbox{logit}\Pr(R_{i(j+1)} = 1 \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i) = 
-  \zeta_{j}^{(Z_i)}
-     + \gamma_{j1}^{(Z_i)}   Y_{ij} + 
-        + \gamma_{j2}^{(Z_i)} Y_{i(j-1)},
+  \mbox{logit}\Pr(R_{i(j+1)} = 1 \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i) =  \zeta_{j}^{(Z_i)} + \gamma_{j1}^{(Z_i)} Y_{ij}  + \gamma_{j2}^{(Z_i)} Y_{i(j-1)},
 $$
 
 $$
