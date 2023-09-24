@@ -1,8 +1,3 @@
----
-title: "Quantile Treatment Effects in Causal Inference Using MEPS Data"
-output: html_document
----
-
 # Introduction
 
 The Medical Expenditure Panel Survey (MEPS) provides extensive data for health
