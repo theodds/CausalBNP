@@ -5,17 +5,21 @@ model considered here is of the form
 $$
   Z_i \sim \text{Categorical}(\omega),
 $$
+
 $$
   R_{i1} \equiv 1,
 $$
+
 $$
   [Y_{i1} \mid Z_i] \sim N(\mu^{(Z_i)}_1, \sigma^{2(Z_i)}_1),
 $$
+
 $$
   \mbox{logit}\Pr(R_{i(j+1)} =  1 \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i)
     = \zeta^{(Z_i)}_j + \gamma^{(Z_i)}_{j1} \,  Y_{ij} + \,
         + \gamma_{j2}^{(Z_i)} Y_{i(j-1)},
 $$
+
 $$
   [Y_{ij} \mid R_{ij} = 1, \overline{Y}_{i(j-1)}, Z_i] \sim 
     N\left\{\mu^{(Z_i)}_j + 
