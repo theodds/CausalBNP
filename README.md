@@ -7,7 +7,8 @@ It is structured as follows:
 
 -   Each chapter for which there is code has a directory. Inside this directory
     is a markdown document describing how to reproduce certain methods used in
-    each chapter.
+    each chapter. __If you click on the folder associated to a given chapter,
+    the markdown document will render on Github.__
     
 -   This repository also contains an R package __CausalBNPBook__ that contains
     routines for fitting the models. It can be installed either by (i)
