@@ -55,6 +55,8 @@ is complete. The main function of the __CausalBNPBook__ is to streamline the use
 of this preexisting code, adding documentation and examples of usage for
 estimating causal effects.
 
+## Methods Included on this Page
+
 This page will be updated over time to include more (and better) software and
 vignettes as they are created. At the moment, software implementing the
 following methods is available:
@@ -66,18 +68,24 @@ following methods is available:
     missing data (Chapter 11).
 -   Dirichlet process observed data models for binary outcomes subject to
     non-monotone missingness (Chapter 12).
--   Dirichlet process mixture models for mediation analysis with continuous
-    outcomes (Chapter 13).
 -   Bayesian additive regression tree models for mediation analysis, assuming both
     a continuous mediator and a continuous outcome (Chapter 14).
 -   A DDP-GP model for semicompeting risks (Chapter 15).
 
-__Currently missing models used in the book are:__
+## Methods That Will Be Added Later
 
-- Dependent Dirichlet process mixtures of Gaussian process (DDP-GP) models for
-  causal inference (Chapter 10).
-- The enriched Dirichlet process mixture model for causal inference with missing
-  covariates, with continuous outcomes (Chapter 11).
+We are currently working to add illustrations of the following approaches:
+
+-   Dependent Dirichlet process mixtures of Gaussian process (DDP-GP) models for
+    causal inference (Chapter 10).
+-   The enriched Dirichlet process mixture model for causal inference with missing
+    covariates, with continuous outcomes (Chapter 11).
+-   Dirichlet process mixture models for mediation analysis with continuous
+    outcomes (Chapter 13).
+
+The material for Chapter 13 will be added shortly after this website goes live,
+and a more advanced package for implementing EDPs is also being actively
+developed.
 
 # Future Plans
 
