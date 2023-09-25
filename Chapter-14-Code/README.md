@@ -89,22 +89,10 @@ fitted_smoking <- bartMachine(
   seed = 1,
   serialize = TRUE
 )
-```
 
-```
-## Warning in build_bart_machine(X, y, Xy, num_trees, num_burn_in,
-## num_iterations_after_burn_in, : covariate prior vector length =
-## 10 has to be equal to p = 27 (the vector was lengthened and
-## evenly distributed the weights)
-```
-
-```r
 # First Clever Covariate
 propensity_scores <- fitted_smoking$p_hat_train
-```
 
-
-```r
 fitted_mediator <- bartMachine(
   X = meps_logy %>% select(-logY, -phealth) %>%
     mutate(propensity = propensity_scores) %>% as.data.frame(),
@@ -115,16 +103,7 @@ fitted_mediator <- bartMachine(
   seed = 2,
   serialize = TRUE
 )
-```
 
-```
-## Warning in build_bart_machine(X, y, Xy, num_trees, num_burn_in,
-## num_iterations_after_burn_in, : covariate prior vector length =
-## 12 has to be equal to p = 29 (the vector was lengthened and
-## evenly distributed the weights)
-```
-
-```r
 # Second Clever Covariate
 health_hat_0 <- predict(
   fitted_mediator, 
@@ -170,13 +149,6 @@ fitted_outcome <- bartMachine(
   mem_cache_for_speed = FALSE,
   serialize = TRUE
 )
-```
-
-```
-## Warning in build_bart_machine(X, y, Xy, num_trees, num_burn_in,
-## num_iterations_after_burn_in, : covariate prior vector length =
-## 15 has to be equal to p = 32 (the vector was lengthened and
-## evenly distributed the weights)
 ```
 
 The mediation is handled using the function `mediate_bart`, which computes the
@@ -271,14 +243,7 @@ the output of `mediate_bart_sensitivity`.
 mediated_bart_agg <- mediated_bart %>% group_by(Iteration, ParamName) %>%
   summarise(Param = mean(Param)) %>% 
   pivot_wider(names_from = ParamName, values_from = Param)
-```
 
-```
-## `summarise()` has grouped output by 'Iteration'. You can override
-## using the `.groups` argument.
-```
-
-```r
 head(mediated_bart_agg)
 ```
 
