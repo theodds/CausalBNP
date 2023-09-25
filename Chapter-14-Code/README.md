@@ -1,16 +1,3 @@
----
-title: "BART for Mediation"
-author: "Antonio R. Linero"
-date: "2023-09-13"
-output: html_document
-editor_options: 
-  markdown: 
-    wrap: 80
-  chunk_output_type: console
----
-
-
-
 # The Mediation Model
 
 We use the following model for the potential outcomes in the mediation analysis
