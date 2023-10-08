@@ -1,0 +1,44 @@
+# Chapter 09
+
+- [x] Find line
+- [ ] Spotify
+- [ ] Move function to a new place
+- [ ] Fit for binomial
+- [ ] Pull the code for the other cluster function
+- [ ] Pull the code for the numeric setting
+- [ ] Compile
+- [ ] Add 10
+
+# Chapter 10
+
+# Chapter 11
+
+# Chapter 13
+
+- https://github.com/lit777/BNPMediation
+
+- [x] Spotify
+- [x] Copy over Chanmin's code
+- [x] Fit Chanmin's code
+- [ ] Add 5 stuff
+
+# Chapter 14
+
+# Chapter 15
+
+https://github.com/YanxunXu/BaySemiCompeting
+
+- [x] Make RMD
+- [x] Spotify
+- [x] Reference that just replicating Yanxun work
+- [x] Spotify
+- [x] Copy Marginal_Surv.R
+- [x] Copy Estimand.R
+- [o] Compile
+- [ ] Run
+
+# Misc
+
+- [ ] Check package
+- [ ] Do proper exports
+- [ ] Function document

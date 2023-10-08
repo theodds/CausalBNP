@@ -1,0 +1,121 @@
+---
+title: "Semi Competing Risks"
+author: "Antonio R. Linero"
+date: "2023-09-13"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 80
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+
+We illustrate the semi competing risks model by replicating the illustrations
+given at <https://github.com/YanxunXu/BaySemiCompeting> by Yanxun Xu. We first
+load simulated data generated at that site:
+
+```{r, results='hide'}
+library(tidyverse)
+library(CausalBNPBook)
+sim_data <- load("data.Rdata")
+
+progression_time   <- full_data[,1]
+survival_time      <- full_data[,2]
+status_progression <- full_data[,3]
+status_survival    <- full_data[,4]
+trt                <- Z[,1]
+X                  <- Z[,-1]
+```
+
+The package defines a wrapper function `BaySemiComp` around the code from the
+github repository. It takes as arguments:
+
+-   The progression event time (i.e., the minimum of progression time, censoring
+    time, and survial time).
+-   The survival event time (i.e., the minimum of the survival time and the
+    censoring time).
+-   The censoring indicator of progression (equal to 1 if progression is
+    observed, 0 if death or censoring is observed before progression).
+-   The censoring indicator of survival (indicator that death occurs before
+    censoring).
+-   A vector of treatment indicators.
+-   A matrix of covariates to adjust for.
+-   The number of warmup iterations, saved iterations, and the thinning interval
+    of the MCMC scheme.
+-   A grid of values of $\rho$ (the sensitivity parameter) to consider, which
+    defaults to $(0.2, 0.5, 0.8)$.
+-   A grid of time points to evaluate the marginal survival curve estimates at
+    (defaults to an evenly-spaced grid of size $50$ covering the observed data).
+
+The function first runs the MCMC, then computes (i) the marginal survival curves
+for the treatment and control groups and (ii) an estimate of $\tau(u)$ as a
+function of $u$ (the log-time). For illustrative purposes, we run the chains for
+only $200$ iterations; in practice it should be run longer.
+
+```{r fitmod, cache = TRUE}
+fitted_bsc <-
+  BaySemiComp(
+    progression_time,
+    survival_time,
+    status_progression,
+    status_survival,
+    trt,
+    X,
+    100,
+    100,
+    1
+  )
+```
+
+The following code plots the usual survival curve estimates against the output
+of the BNP method with a 95% credible band:
+
+```{r}
+library(survival)
+tim <- fitted_bsc$time_grid
+mini.surv <- survfit(Surv(full_data[,2], full_data[,4])~ Z[,1], conf.type="none")
+plot(mini.surv, col=c(1, 2), xlab="log(Time)", ylab="Survival Probability")
+lines(tim, fitted_bsc$marginal_survival$fmean0_ave, col=1,lty=2)
+lines(tim, fitted_bsc$marginal_survival$fquantile0[1,], col=1, lty=3)
+lines(tim, fitted_bsc$marginal_survival$fquantile0[2,], col=1, lty=3)
+lines(tim, fitted_bsc$marginal_survival$fmean1_ave, col=2,lty=2)
+lines(tim, fitted_bsc$marginal_survival$fquantile1[1,], col=2, lty=3)
+lines(tim, fitted_bsc$marginal_survival$fquantile1[2,], col=2, lty=3)
+legend("topright", c("Treatment", "Control"), col = c(2,1),lty=1)
+```
+
+The following code recreates the estimate of $\tau(u)$ along a specified range
+of $u$'s:
+
+```{r}
+u_range = seq(0,6,0.5)
+ratio = matrix(0, length(u_range), 2)
+hu_result <- fitted_bsc$causal_estimand_grid[[1]]
+hu_result1 <- fitted_bsc$causal_estimand_grid[[3]]
+
+ratio_interval=array(0, c(2, length(u_range), 2))
+tmp = ifelse(hu_result[,,1]<=0.05 & hu_result[,,2]<=0.05, 1, hu_result[,,2]/hu_result[,,1])
+tmp1 = ifelse(hu_result1[,,1]<=0.05 & hu_result1[,,2]<=0.05, 1, hu_result1[,,2]/hu_result1[,,1])
+
+  for (u_index in 1:length(u_range))
+  {
+    ratio[u_index,1] = mean(tmp[u_index,])
+    ratio_interval[, u_index, 1] = quantile(tmp[u_index,], c(0.025, 0.975))
+    ratio[u_index,2] = mean(tmp1[u_index,])
+    ratio_interval[, u_index, 2] = quantile(tmp1[u_index,], c(0.025, 0.975))
+  }
+
+par(mar=c(5.1,5.1,4.1,2.1))
+plot(u_range, predict(loess(ratio[,1]~u_range)),"l",xlab="log(Time) (u)", ylab=expression(paste("Estimate of", " ", tau, "(u)")),ylim=c(0, 2),cex.axis=2, cex.lab=2)
+lines(u_range, predict(loess(ratio_interval[1,,1]~u_range)),col=1,lty=2)
+lines(u_range, predict(loess(ratio_interval[2,,1]~u_range)),col=1,lty=2)
+lines(u_range, predict(loess(ratio[,2]~u_range)),col=2)
+lines(u_range, predict(loess(ratio_interval[1,,2]~u_range)),col=2,lty=2)
+lines(u_range, predict(loess(ratio_interval[2,,2]~u_range)),col=2,lty=2)
+legend("topright", c(expression(paste(rho, "=0.2")),expression(paste(rho, "=0.8"))), col = c(1, 2),lty=c(1,1,1))
+```

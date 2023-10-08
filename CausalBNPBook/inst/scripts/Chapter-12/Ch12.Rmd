@@ -1,0 +1,314 @@
+---
+title: "DPMs for Non-Monotone Missingness"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 80
+---
+
+# Introduction
+
+In this document we analyze data synthetic data to illustrate the application of
+the Dirichlet process mixture of multinomial models to estimate the mean of an
+outcome $Y_{iJ}$ at the dnof a study, assuming that the outcome is measured at
+times $j = 1,\ldots, J$ with (possibly) non-monotone missingness. We show both
+how to use this method for fully-Bayesian inference and how to use it as part of
+a multiple imputation (MI) approach.
+
+For simplicity we consider only a single treatment arm. To compare two
+treatments, one can fit separate models to each treatment and then combine the
+results from the different imputations and/or samples from the posterior to
+perform inference for the differences in means.
+
+# Description of the Observed Data Model
+
+The Dirichlet process mixture of multinomial models for the observed data can be
+understood as a mixture model of the form
+
+$$
+  f(y_r, r)
+    = \sum_k w_k 
+      \left\{\prod_{j=1}^J \gamma_{kj}^{r_j} (1 - \gamma_{kj})^{1 - r_j}\right\}
+      \left\{\prod_{j : r_j = 1} \beta_{kj}^{y_j} 
+          (1 - \beta_{kj})^{1 - y_j}\right\}.
+$$
+
+This model can be described in a hierarchical fashion as follows:
+
+$$
+\begin{aligned}
+  Z_i &\sim \text{Categorical}(w), \\
+  [R_{ij} \mid Z_i = k] &\sim \text{Bernoulli}(\gamma_{kj}), \\
+  [Y_{ij} \mid R_{ij} = 1, Z_i = k] &\sim \text{Bernoulli}(\beta_{kj}). \\
+\end{aligned}
+$$
+
+The parameters
+$(w_k, \gamma_{kj}, \beta_{kj} : k = 1,\ldots,K, j = 1, \ldots, J)$ are then
+specified according to a *truncated Dirichlet process prior* with
+
+$$
+\begin{aligned}
+  w_k &= w'_k \prod_{\ell < k} (1 - w'_\ell), 
+   \qquad w'_k \sim \text{Beta}(1,\alpha), \\
+  \beta_{kj} &\sim \text{Beta}\{\rho_{\beta_j} \lambda_{\beta_j}, 
+                               (1 - \rho_{\beta_j})\lambda_{\beta_j}\}, \\
+  \gamma_{kj} &\sim \text{Beta}\{\rho_{\gamma_j} \lambda_{\gamma_j}, 
+                               (1 - \rho_{\gamma_j})\lambda_{\gamma_j}\}. \\
+\end{aligned}
+$$
+
+This approach essentially sets all outcomes to be independent of one another
+conditional on a single latent class variable $Z_i$; the $\rho$ parameters allow
+for the overall (marginal) probabilities of the variables to be similar across
+latent classes, while the $\lambda$ parameters are precision parameters that
+allow the probabilities to vary across clusters. These parameters are given
+independent hyperpriors of the generic form
+
+$$
+\begin{aligned}
+  \rho &\sim \text{Uniform}(0,1), \\
+  \pi(\lambda) &\sim \frac{\sigma}{(\sigma + \lambda)^2}
+\end{aligned}
+$$
+
+where $\sigma$ is taken to be a "prior guess" at the number of observations in a
+typical latent class. As shown in the book, this corresponds to a type of
+*uniform shrinkage prior* for the estimated mean within each cluster. A very
+rough guess at this quantity, assuming a fixed $\alpha$, is
+$\frac{N}{\alpha\{\psi(N + \alpha) - \psi(\alpha)\}}$ where $\psi(x)$ is the
+digamma function, although it also makes sense to try different values of
+$\sigma$ to assess how sensitive the results are to its choice (generally, we
+have not found it to be highly influential). Alternatively, one might consider
+placing a prior on $\sigma$, although the current software does not allow for
+this.
+
+# Data Generation
+
+The data used in Chapter 12 is proprietary; consequently, we illustrate the use
+of the software using synthetic data. This is generated below:
+
+```{r setup, results='hide'}
+## Load ----
+library(tidyverse)
+library(CausalBNPBook)
+library(bindata)
+library(mitools)
+library(tidybayes)
+
+## Generate data ---
+
+set.seed(1234)
+simulate_data <- function(N = 500, J = 6, rho = .4) {
+  Sigma <- (1 - rho) * diag(J) + rho
+  Y <- rmvbin(N, margprob = rep(.5, J), sigma = Sigma)
+  R <- rmvbin(N, margprob = rep(.8, J), sigma = Sigma)
+  Y <- ifelse(R == 1, Y, NA)
+
+  return(list(Y = Y, R = R))
+}
+
+synthetic_data <- simulate_data()
+```
+
+In this case, $Y_i$ and $R_i$ are generated independently (hence, missingness is
+missing completely at random) according to a multivariate probit model with an
+exchangeable covariance $\Sigma_{ij} = 0.4 + 0.6 I(i = j)$. For more details on
+the generation of the data, see `?rmvbin`.
+
+# Fitting the Model to the Observed Data
+
+The main function for fitting the Dirichlet mixture of multinomials model is
+`ParafacMNAR`, which returns an object of class `parafac`. A missing-at-random
+version of the model can be fit using the `ParafacMAR` model; this uses the same
+data generating mechanism for the observed data for $Y_{ij}$ but does not
+explicitly model the missing data indicators. The arguments for fitting the
+model are self explanatory, with `sigma_a` corresponding to the parameter
+$\sigma$ in the uniform shrinkage prior.
+
+```{r fitobs, cache = TRUE, results='hide'}
+set.seed(7483)
+
+fit_mnar <- ParafacMNAR(
+  Y       = synthetic_data$Y,
+  R       = synthetic_data$R,
+  sigma_a = 8,
+  nburn   = 1000,
+  nsave   = 1000,
+  nthin   = 1
+)
+
+fit_mar <- ParafacMAR(
+  Y       = synthetic_data$Y,
+  R       = synthetic_data$R,
+  sigma_a = 8,
+  nburn   = 1000,
+  nsave   = 1000,
+  nthin   = 1
+)
+```
+
+We will not generally interact with the output of these functions directly;
+instead, they are used in conjunction with either multiple imputation or with
+the $g$-computation functions to sample from the posterior of the parameters
+$\psi_j = \mathbb{E}(Y_{ij})$.
+
+# Performing Multiple Imputation
+
+As in the monograph, this software allows for specification of several different
+identifying assumptions. The function `ParafacMI` allows us to draw multiply
+imputed datasets under a variety of different assumptions, including the
+complete case missing value (CCMV), nearest identified pattern (NIP), and tilted
+last occasion (TLO) assumptions discussed in the book. The tilted last occasion
+model allows for specifying a prior on a sensitivity parameter $\xi_j$, which is
+discussed below for performing a sensitivity analysis; currently, TLO is the
+only assumption that allows specifying a sensitivity parameter. The code below
+performs the imputations under CCMV, NIP, and MAR:
+
+```{r impute, cache = TRUE}
+set.seed(7371)
+
+imputes_ccmv <- ParafacMI(Y = synthetic_data$Y,
+                          R = synthetic_data$R,
+                          chain = fit_mnar,
+                          num_impute = 20,
+                          method = "CCMV")
+
+imputes_nip <- ParafacMI(Y = synthetic_data$Y,
+                         R = synthetic_data$R,
+                         chain = fit_mnar,
+                         num_impute = 20,
+                         method = "NIP",
+                         j_0 = 6)
+
+imputes_mar <- ParafacMI(Y = synthetic_data$Y,
+                         R = synthetic_data$R,
+                         chain = fit_mar,
+                         num_impute = 20,
+                         method= "MAR")
+```
+
+This returns a list of imputed outcomes `Y` in a "wide" format, which we now
+inspect:
+
+```{r}
+head(imputes_ccmv[[1]])
+head(imputes_nip[[1]])
+```
+
+Note that the imputations under the nearest identified pattern (NIP) assumption
+still contains `NA`'s in the imputation; this is because NIP is a *partial*
+identifying restriction as defined in the monograph, with only a single time
+point being imputed to ensure that the analyst does not attempt to draw any
+conclusions that are not supported by the assumption.
+
+These imputed datasets can be used with existing tools for multiple imputation
+in the usual way. For example, using the `mitools` package, we can perform
+inference for the mean outcome at time $J$ under the CCMV assumption as follows
+(see `?MIcombine` for details on how to combine inferences across different
+imputations):
+
+```{r mi, cache = TRUE}
+## Collect a list containing point estimates of the mean outcome at time J
+mean_ccmv <- lapply(imputes_ccmv, function(x) mean(x[,ncol(x)]))
+
+## Collect a list containing standard errors of the point estimate
+var_ccmv <- lapply(imputes_ccmv, function(x) var(x[,ncol(x)]) / nrow(x))
+
+## Combine the results via multiple imputation
+MIcombine(mean_ccmv, var_ccmv)
+```
+
+# Fully-Bayes Inference
+
+The `GcompCCMV` and `GcompODMV` functions implement the $g$-formula to produce
+samples of the mean at time $j$ under the CCMV and NIP assumptions,
+respectively. Both of these functions allow for specifying a prior for a
+sensitivity parameter $\xi_j$, which is analogous to the exponential tilting
+parameter used in tilted last occasion model described in the monograph. These
+functions also return an estimate of the Monte Carlo error for each iteration,
+so that the user can judge whether the Monte Carlo error from the
+$g$-computation is sufficiently small to treat the samples as exact samples from
+the posterior or use these standard errors with the accelerated $g$-computation
+algorithm.
+
+```{r gcomp, cache = TRUE}
+set.seed(99991)
+
+mu_ccmv <- GcompCCMV(fit_mnar)
+mu_nip <- GcompODMV(fit_mnar, j_0 = 6)
+```
+
+These objects are returned in a tidy format, with the iteration, sample, and
+standard error as the columns:
+
+```{r}
+head(mu_ccmv)
+```
+
+The results can be summarized, for example, using the `tidybayes` library to
+visualize the posterior distribution and credible intervals for the parameters.
+The following code compares the inferences for the two assumptions:
+
+```{r}
+mu_ccmv_2 <- mu_ccmv %>% mutate(Assumption = "CCMV")
+mu_nip_2 <- mu_nip %>% mutate(Assumption = "NIP")
+
+mu_compare <- rbind(mu_ccmv_2, mu_nip_2)
+
+ggplot(mu_compare, aes(x = mean, y = Assumption, color = Assumption)) +
+  stat_halfeye(alpha = 0.5) +
+  theme_bw() +
+  xlab("Mean of Y")
+```
+
+and also examines how the samples differ from each other on an
+iteration-by-iteration basis:
+
+```{r}
+mu_delta  <- mu_ccmv %>% mutate(delta = mean - mu_nip$mean)
+ggplot(mu_delta, aes(x = delta)) +
+  stat_halfeye(alpha = 0.5, color = 2, size = 5) +
+  theme_bw()
+```
+
+# Incorporating Sensitivity Parameters
+
+In the current version of this package, there is only one imputation method
+which allows incorporation of sensitivity parameters with multiple imputation:
+the Tilted Last Occasion assumption. See the monograph for more details. This
+requires providing, in addition to the marginal we want to impute, a sensitivity
+parameter *ξ* to be used in exponential tilting for each imputed dataset. For
+example, if $\xi \sim \text{Uniform}(0,1)$ we might do the following:
+
+```{r TLOMI, cache = TRUE}
+## Use the tilted last occasion model for imputation
+imputes_tlo <- ParafacMI(Y = synthetic_data$Y, 
+                         R = synthetic_data$R, 
+                         chain = fit_mnar, 
+                         num_impute = 20, 
+                         method = "TLO", 
+                         j_0 = 6, 
+                         xi = runif(20))
+```
+
+# Assessing Goodness of Fit
+
+As a sanity check, it can be useful to verify that the results of the
+nonparametric model agree with a nonparametric analysis of the observed data
+distribution; this ensures that the model is sufficiently flexible to model the
+observed data reasonably well. The `ParafacObserved` function does this for the
+marginal means of both the missing data indicators and the *observed* outcomes.
+The orange line and error bars correspond to the empirical means with an
+associated 95% interval, while the solid points/dark error bars correspond to
+the output of the model.
+
+```{r}
+marginal_means <- ParafacObserved(fit_mnar,
+  Y = synthetic_data$Y,
+  R = synthetic_data$R,
+  do_plot = TRUE
+)
+```
+
+We see that the model is essentially in agreement with the empirical means.

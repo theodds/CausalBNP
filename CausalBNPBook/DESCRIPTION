@@ -1,0 +1,35 @@
+Package: CausalBNPBook
+Type: Package
+Title: Package that implements the methods described in the case studies of Bayesian Nonparametrics for Causal Inference and Missing Data
+Version: 0.1.0
+Author: Who wrote it
+Maintainer: The package maintainer <yourself@somewhere.net>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    Rcpp,
+    ggplot2,
+    bartCause,
+    splines,
+    BART,
+    xgboost,
+    randomForest,
+    gbm,
+    rpart,
+    gridExtra,
+    rpart.plot,
+    MCMCpack,
+    survival,
+    mgcv,
+    tmvtnorm,
+    mvtnorm,
+    rjags,
+    runjags,
+    norm
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo
+RoxygenNote: 7.2.3
