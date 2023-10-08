@@ -1,14 +1,3 @@
----
-title: "Enriched Dirichlet Processes"
-author: "Antonio R. Linero"
-date: "2023-09-13"
-output: html_document
-editor_options: 
-  markdown: 
-    wrap: 80
-  chunk_output_type: console
----
-
 We illustrate the use of the Enriched Dirichlet process (EDP) for causal
 inference using data simulated under settings of Roy et al. The original Github
 repository is available [at this
